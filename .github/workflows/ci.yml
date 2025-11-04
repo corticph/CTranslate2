@@ -140,8 +140,6 @@ jobs:
         include:
         - os: ubuntu-22.04
           arch: aarch64
-        - os: macos-13
-          arch: arm64
 
     steps:
       - uses: actions/checkout@v4
