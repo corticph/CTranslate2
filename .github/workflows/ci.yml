@@ -132,15 +132,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-2019]
+        os: [ubuntu-22.04]
         arch: [auto64]
         include:
         - os: ubuntu-22.04
           arch: aarch64
         - os: macos-13
           arch: arm64
-        - os: macos-13
-          arch: x86_64
 
     steps:
       - uses: actions/checkout@v4
@@ -267,76 +265,13 @@ jobs:
           merge-multiple: true
           path: .
 
-      - name: Publish Python wheels to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          packages-dir: .
-
-
-  build-and-push-docker-images:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Build Docker images
+      - name: Unpack wheels
         run: |
-          ./docker/build_all.sh
+          unzip python-wheels-Linux-auto64.zip -d wheels
+          unzip python-wheels-Linux-aarch64.zip -d wheels
 
-      - name: Login to DockerHub
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push Docker images
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-        run: |
-          ./docker/build_all.sh ${GITHUB_REF##*/v} 1
-
-
-  build-and-deploy-docs:
-    runs-on: ubuntu-latest
-    needs: [check-python-style, build-python-wheels]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.9
-
-      - name: Download CTranslate2 wheels
-        uses: actions/download-artifact@v4
-        with:
-          pattern: python-wheels-${{ runner.os }}-*
-          merge-multiple: true
-          path: .
-
-      - name: Install CTranslate2 wheel
-        run: |
-          pip install *cp39*manylinux*x86_64.whl
-
-      - name: Install dependencies to build docs
-        working-directory: docs
-        run: |
-          python -m pip install -r requirements.txt
-
-      - name: Build docs
-        working-directory: docs
-        run: |
-          python generate.py python
-          sphinx-build . build
-
-      - name: Deploy docs
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: docs/build
-          clean: true
+      - name: Upload Release Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run:
+          gh release upload ${{ github.ref_name }} wheels/*
