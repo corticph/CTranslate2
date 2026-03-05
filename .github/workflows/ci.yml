@@ -197,6 +197,27 @@ jobs:
           path: dist-cuda13/*.whl
 
 
+  test-cuda13-wheel:
+    needs: [build-cuda13-wheel]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download CUDA 13 wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: python-wheels-cuda13
+          path: .
+
+      - name: Install and smoke-test wheel
+        run: |
+          pip install *.whl
+          python -c "import ctranslate2; print('ctranslate2', ctranslate2.__version__)"
+
+
   # We could test the Python wheels using cibuildwheel but we prefer to run the tests outside
   # the build environment to ensure wheels correctly embed all dependencies.
   test-python-wheels:
@@ -277,7 +298,7 @@ jobs:
 
   publish-python-on-tag:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [build-and-test-cpp-x86_64, build-python-wheels, test-python-wheels, check-python-style, build-cuda13-wheel]
+    needs: [build-and-test-cpp-x86_64, build-python-wheels, test-python-wheels, check-python-style, build-cuda13-wheel, test-cuda13-wheel]
     runs-on: ubuntu-22.04
 
     steps:
