@@ -214,6 +214,10 @@ jobs:
 
       - name: Install and smoke-test wheel
         run: |
+          # Provide stub libcudnn so the import succeeds without a full CUDA install.
+          # The wheel deliberately excludes it to keep size down.
+          sudo touch /usr/lib/x86_64-linux-gnu/libcudnn.so.9
+          sudo ldconfig
           pip install *.whl
           python -c "import ctranslate2; print('ctranslate2', ctranslate2.__version__)"
 
