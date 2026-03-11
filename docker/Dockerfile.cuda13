@@ -17,9 +17,20 @@ RUN apt-get update && \
         cmake \
         git \
         libcudnn9-dev-cuda-13 \
+        curl \
+        gfortran \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Build OpenBLAS (static) for CPU SGEMM backend
+ENV OPENBLAS_VERSION=0.3.21
+RUN curl -L -O https://github.com/xianyi/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}.tar.gz && \
+    tar xf *.tar.gz && rm *.tar.gz && \
+    cd OpenBLAS-* && \
+    make NO_SHARED=1 BUILD_SINGLE=1 NO_LAPACK=1 ONLY_CBLAS=1 USE_OPENMP=1 NUM_THREADS=32 NUM_PARALLEL=8 -j$(nproc) && \
+    make install NO_SHARED=1 && \
+    cd .. && rm -rf OpenBLAS-*
 
 WORKDIR /root
 
@@ -42,6 +53,8 @@ RUN mkdir build_tmp && \
           -DBUILD_CLI=OFF \
           -DWITH_MKL=OFF \
           -DWITH_DNNL=OFF \
+          -DCMAKE_PREFIX_PATH="/opt/OpenBLAS" \
+          -DWITH_OPENBLAS=ON \
           -DOPENMP_RUNTIME=COMP \
           -DWITH_CUDA=ON \
           -DWITH_CUDNN=ON \
