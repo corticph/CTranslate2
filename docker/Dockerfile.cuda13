@@ -74,12 +74,11 @@ RUN cd python && \
     CTRANSLATE2_ROOT=${CTRANSLATE2_ROOT} \
     python3 setup.py bdist_wheel --dist-dir /tmp/raw-wheel
 
-# Bundle libctranslate2.so into the wheel, excluding CUDA/cuDNN runtime libs
+# Bundle libctranslate2.so into the wheel; cuDNN is bundled for CPU-only env compat
 RUN LD_LIBRARY_PATH=${CTRANSLATE2_ROOT}/lib:${LD_LIBRARY_PATH} \
     auditwheel repair /tmp/raw-wheel/*.whl \
         --plat manylinux_2_39_x86_64 \
         --wheel-dir /output \
-        --exclude libcudnn.so.9 \
         --exclude libcudart.so.13 \
         --exclude libcuda.so.1 \
         --exclude libnvinfer.so.10
